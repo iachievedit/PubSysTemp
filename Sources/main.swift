@@ -23,29 +23,29 @@ let client = Client(clientId:String(cString:buffer))
 client.host = "broker.hivemq.com"
 client.keepAlive = 10
 
-let nc = NSNotificationCenter.defaultCenter()
-var reportTemperature:NSTimer?
+let nc = NotificationCenter.defaultCenter()
+var reportTemperature:Timer?
 
-_ = nc.addObserverForName("DisconnectedNotification", object:nil, queue:nil){_ in
+_ = nc.addObserverForName(DisconnectedNotification.name, object:nil, queue:nil){_ in
   SLogInfo("Connecting to broker")
 
   reportTemperature?.invalidate()
   if !client.connect() {
     SLogError("Unable to connect to broker.hivemq.com, retrying in 30 seconds")
     let retryInterval     = 30
-    let retryTimer        = NSTimer.scheduledTimer(NSTimeInterval(retryInterval),
+    let retryTimer        = Timer.scheduledTimer(withTimeInterval:TimeInterval(retryInterval),
                                                    repeats:false){ _ in
-      nc.postNotificationName("DisconnectedNotification", object:nil)
+      nc.postNotification(DisconnectedNotification)
     }
-    NSRunLoop.currentRunLoop().addTimer(retryTimer, forMode:NSDefaultRunLoopMode)
+    RunLoop.current().add(retryTimer, forMode:RunLoopMode.defaultRunLoopMode)
   }
 }
 
-_ = nc.addObserverForName("ConnectedNotification", object:nil, queue:nil) {_ in
+_ = nc.addObserverForName(ConnectedNotification.name, object:nil, queue:nil) {_ in
 
   let reportInterval    = 10
-  reportTemperature = NSTimer.scheduledTimer(NSTimeInterval(reportInterval),
-                                                 repeats:true){_ in
+  reportTemperature = Timer.scheduledTimer(withTimeInterval:TimeInterval(reportInterval),
+                                             repeats:true){_ in
 
     if client.connState == .CONNECTED {
       if let cpuTemperature = CPU().temperature {
@@ -60,13 +60,13 @@ _ = nc.addObserverForName("ConnectedNotification", object:nil, queue:nil) {_ in
     }
   }
                                                                            
-  NSRunLoop.currentRunLoop().addTimer(reportTemperature!, forMode:NSDefaultRunLoopMode)
+                                                                              RunLoop.current().add(reportTemperature!, forMode:RunLoopMode.defaultRunLoopMode)
 
 }
 
-nc.postNotificationName("DisconnectedNotification", object:nil) // Kick the connection
+nc.postNotification(DisconnectedNotification) // Kick the connection
 
-let heartbeat = NSTimer.scheduledTimer(NSTimeInterval(30), repeats:true){_ in return}
-NSRunLoop.currentRunLoop().addTimer(heartbeat, forMode:NSDefaultRunLoopMode)
-NSRunLoop.currentRunLoop().run()
+let heartbeat = Timer.scheduledTimer(withTimeInterval:TimeInterval(30), repeats:true){_ in return}
+RunLoop.current().add(heartbeat, forMode:RunLoopMode.defaultRunLoopMode)
+RunLoop.current().run()
 
