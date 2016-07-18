@@ -8,7 +8,16 @@ import swiftlog
 import Glibc
 import Foundation
 
-slogLevel = .Info // Change to .Verbose to get real chatty
+var secure:Bool = false
+var verifyBundle:String?
+if Process.arguments.count == 3 {
+  if Process.arguments[1] == "secure" {
+    verifyBundle = Process.arguments[2]
+    secure       = true
+  }
+}
+
+slogLevel = .Verbose // Change to .Verbose to get real chatty
 
 slogToFile(atPath:"/tmp/pubSysTemp.log")
 
@@ -20,8 +29,14 @@ guard gethostname(&buffer, BUFSIZE) == 0 else {
 }
 
 let client = Client(clientId:String(cString:buffer))
-client.host = "broker.hivemq.com"
+//client.host = "mqtt.no-ip.info"
+client.host = "192.168.1.131"
 client.keepAlive = 10
+
+if secure {
+  client.secureMQTT = secure
+  client.port       = 8883
+}
 
 let nc = NotificationCenter.defaultCenter()
 var reportTemperature:Timer?
@@ -43,7 +58,7 @@ _ = nc.addObserverForName(DisconnectedNotification.name, object:nil, queue:nil){
 
 _ = nc.addObserverForName(ConnectedNotification.name, object:nil, queue:nil) {_ in
 
-  let reportInterval    = 10
+  let reportInterval    = 20
   reportTemperature = Timer.scheduledTimer(withTimeInterval:TimeInterval(reportInterval),
                                              repeats:true){_ in
 
@@ -60,7 +75,7 @@ _ = nc.addObserverForName(ConnectedNotification.name, object:nil, queue:nil) {_ 
     }
   }
                                                                            
-                                                                              RunLoop.current().add(reportTemperature!, forMode:RunLoopMode.defaultRunLoopMode)
+  RunLoop.current().add(reportTemperature!, forMode:RunLoopMode.defaultRunLoopMode)
 
 }
 
